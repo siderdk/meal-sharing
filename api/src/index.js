@@ -6,6 +6,7 @@ import knex from "./database_client.js";
 import nestedRouter from "./routers/nested.js";
 import mealsRouter from "./routers/meals.js";
 import reservationsRouter from "./routers/reservations.js";
+import reviewsRouter from "./routers/reviews.js";
 
 const app = express();
 app.use(cors());
@@ -70,6 +71,9 @@ apiRouter.use("/meals", mealsRouter);
 
 //Sub-router for reservations
 apiRouter.use("/reservations", reservationsRouter);
+
+//sub-router for reviews
+apiRouter.use("/reviews", reviewsRouter);
 
 
 app.use("/api", apiRouter);
