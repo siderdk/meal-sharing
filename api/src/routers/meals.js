@@ -10,8 +10,61 @@ mealsRouter.use(bodyParser.urlencoded({ extended: true }));
 
 // Get all meals
 mealsRouter.get("/", async (req, res) => {
-    const meals = await knex.select("*").from("meal");
-    res.json({ reservations: meals });
+    let query = knex("meal");
+
+    const { maxPrice, availableReservations, title, dateAfter, dateBefore, limit, sortKey, sortDir } = req.query;
+
+    try {
+        if (maxPrice) {
+            query = query.where("price", "<=", maxPrice);
+        }
+
+        if (title) {
+            query = query.where("title", "like", `%${title}%`);
+        }
+
+        if (dateAfter) {
+            query = query.where("when", ">=", dateAfter);
+        }
+
+        if (dateBefore) {
+            query = query.where("when", "<=", dateBefore);
+        }
+
+        if (availableReservations) {
+            if (availableReservations === "true") {
+                query = query.whereExists(
+                    knex("reservation")
+                        .select("meal_id")
+                        .whereRaw("meal.id = reservation.meal_id")
+                        .groupBy("reservation.meal_id")
+                        .havingRaw("meal.max_reservations > COUNT(reservation.id)")
+                );
+            } else {
+                query = query.whereNotExists(
+                    knex("reservation")
+                        .select("meal_id")
+                        .whereRaw("meal.id = reservation.meal_id")
+                        .groupBy("reservation.meal_id")
+                        .havingRaw("meal.max_reservations > COUNT(reservation.id)")
+                );
+            }
+        }
+
+        if (sortKey && ["when", "max_reservations", "price"].includes(sortKey)) {
+            query = query.orderBy(sortKey, sortDir === "desc" ? "desc" : "asc");
+        }
+
+        if (limit) {
+            query = query.limit(Number(limit));
+        }
+
+        const meals = await query;
+        res.json({ meals });
+    } catch (error) {
+        console.error("Error fetching meals:", error);
+        res.status(500).json({ message: "Error fetching meals" });
+    }
   });
   
 

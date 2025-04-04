@@ -90,12 +90,20 @@ reservationsRouter.put("/:id", async (req, res) => {
 //delete reservation by id
 reservationsRouter.delete("/:id", async (req, res) => {
     const { id } = req.params;
-    const reservation = await knex('reservation').where({ id });
-    if (reservation.length === 0) {
-        return res.status(404).json({ message: "Reservation not found" });
+    try {
+        const reservation = await knex('reservation').where({ id }).first(); 
+        
+        if (!reservation) {
+            return res.status(404).json({ message: "Reservation not found" });
+        }
+
+        await knex('reservation').where({ id }).del();
+        res.json({ message: "Reservation deleted successfully" });
+
+    } catch (error) {
+        console.error("Error deleting reservation:", error);
+        res.status(500).json({ message: "Error deleting reservation" });
     }
-    await knex('reservation').where({ id }).del();
-    res.json({ message: "Reservation deleted" });
 });
 
 
